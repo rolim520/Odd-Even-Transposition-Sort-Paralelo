@@ -1,21 +1,22 @@
 CC = gcc
-MPICC = mpicc
-CFLAGS = -O2 -Wall
+CFLAGS = -O2 -Wall -D_POSIX_C_SOURCE=199309L
+LDFLAGS_OPENMP = -fopenmp
+LDFLAGS_MPI = 
 
-all: odd_even_serial odd_even_openmp odd_even_mpi
+TARGET_SERIAL = build/odd_even_serial
+TARGET_OPENMP = build/odd_even_openmp
+TARGET_MPI = build/odd_even_mpi
 
-odd_even_serial: odd_even_serial.c
-	$(CC) $(CFLAGS) -o odd_even_serial odd_even_serial.c
+all: $(TARGET_SERIAL) $(TARGET_OPENMP) $(TARGET_MPI)
 
-odd_even_openmp: odd_even_openmp.c
-	$(CC) $(CFLAGS) -fopenmp -o odd_even_openmp odd_even_openmp.c
+$(TARGET_SERIAL): odd_even_serial.c
+	$(CC) $(CFLAGS) -o $@ $^
 
-#odd_even_mpi: odd_even_mpi.c
-#	$(MPICC) $(CFLAGS) -o odd_even_mpi odd_even_mpi.c
+$(TARGET_OPENMP): odd_even_openmp.c
+	$(CC) $(CFLAGS) $(LDFLAGS_OPENMP) -o $@ $^
+
+$(TARGET_MPI): odd_even_mpi.c
+	$(CC) $(CFLAGS) $(LDFLAGS_MPI) -o $@ $^
 
 clean:
-	rm -f odd_even_serial odd_even_openmp odd_even_mpi
-
-test: all
-	./odd_even_serial 1000
-	./odd_even_openmp 1000 2
+	rm -rf build

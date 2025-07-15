@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 199309L
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -72,8 +73,18 @@ int main(int argc, char *argv[]) {
         printf("(exibindo apenas os 20 primeiros elementos)\n");
     }
 
-    // Medição de tempo seria aqui
+    // Medição de tempo
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
     odd_even_sort_serial(arr, n);
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    double time_taken;
+    time_taken = (end.tv_sec - start.tv_sec) + (double)(end.tv_nsec - start.tv_nsec) / 1e9;
+
+    printf("Tempo de execução: %f segundos\n", time_taken);
 
     printf("Array ordenado: ");
     if (n <= 20) {
