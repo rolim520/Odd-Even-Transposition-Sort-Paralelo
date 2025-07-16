@@ -87,25 +87,24 @@ int main(int argc, char *argv[]) {
     // --- Lógica para Distribuição Desigual ---
     int base_chunk = n / size;
     int remainder = n % size;
-    int local_n;
-
-    // Os primeiros 'remainder' processos recebem um elemento a mais
-    if (rank < remainder) {
-        local_n = base_chunk + 1;
-    } else {
-        local_n = base_chunk;
-    }
+    int local_n = (rank < remainder) ? base_chunk + 1 : base_chunk;
 
     int *local_arr = (int*)malloc(local_n * sizeof(int));
-    int *arr = NULL;
+    // Todos os processos alocam memória para o array final, pois o Allgatherv entregará o resultado a todos.
+    int *arr = (int*)malloc(n * sizeof(int));
     double t_serial = 0.0;
     
-    // Arrays para MPI_Scatterv e MPI_Gatherv
-    int *sendcounts = NULL;
-    int *displs = NULL;
+    // Todos os processos precisam de sendcounts e displs para o Allgatherv.
+    int *sendcounts = malloc(size * sizeof(int));
+    int *displs = malloc(size * sizeof(int));
+    int current_displ = 0;
+    for (int i = 0; i < size; i++) {
+        sendcounts[i] = (i < remainder) ? base_chunk + 1 : base_chunk;
+        displs[i] = current_displ;
+        current_displ += sendcounts[i];
+    }
 
     if (rank == 0) {
-        arr = (int*)malloc(n * sizeof(int));
         int *arr_serial_copy = (int*)malloc(n * sizeof(int));
         
         generate_random_array(arr, n, 1000);
@@ -131,16 +130,6 @@ int main(int argc, char *argv[]) {
         printf("Array está ordenado: %s\n\n", is_sorted(arr_serial_copy, n) ? "Sim" : "Não");
         
         free(arr_serial_copy);
-
-        // Prepara os arrays para o Scatterv
-        sendcounts = malloc(size * sizeof(int));
-        displs = malloc(size * sizeof(int));
-        int current_displ = 0;
-        for (int i = 0; i < size; i++) {
-            sendcounts[i] = (i < remainder) ? base_chunk + 1 : base_chunk;
-            displs[i] = current_displ;
-            current_displ += sendcounts[i];
-        }
     }
 
     // Broadcast do tempo serial para todos os processos
@@ -194,10 +183,11 @@ int main(int argc, char *argv[]) {
     double total_time = total_end - total_start;
     double computation_time = total_time - comm_time;
 
-    // Coleta os dados usando Gatherv (mais eficiente que Allgatherv, já que só o rank 0 precisa)
-    MPI_Gatherv(local_arr, local_n, MPI_INT,
-                arr, sendcounts, displs, MPI_INT,
-                0, MPI_COMM_WORLD);
+    // Coleta os dados usando Allgatherv, conforme especificado no PDF.
+    // Todos os processos receberão o array final completo.
+    MPI_Allgatherv(local_arr, local_n, MPI_INT,
+                   arr, sendcounts, displs, MPI_INT,
+                   MPI_COMM_WORLD);
 
     double t_parallel, comm_time_sum, computation_time_sum;
     MPI_Reduce(&total_time, &t_parallel, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
@@ -226,13 +216,14 @@ int main(int argc, char *argv[]) {
         printf("Eficiência de Comunicação: %.4f\n", comm_efficiency);
         printf("Speedup: %.4f\n", speedup);
         printf("Eficiência: %.4f\n", efficiency);
-        
-        free(sendcounts);
-        free(displs);
     }
 
+    // Todos os processos liberam a memória que alocaram
     free(arr);
     free(local_arr);
+    free(sendcounts);
+    free(displs);
+    
     MPI_Finalize();
     return 0;
 }
