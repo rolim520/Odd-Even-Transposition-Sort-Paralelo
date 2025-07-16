@@ -69,28 +69,26 @@ int main(int argc, char *argv[]) {
     // Gerar array aleatório
     generate_random_array(arr, n, 1000);
 
-    printf("Array original: ");
-    if (n <= 20) {
-        print_array(arr, n);
-    } else {
-        print_array(arr, 20);
-        printf("(exibindo apenas os 20 primeiros elementos)\n");
-    }
+    printf("--- Configuração ---\n");
+    printf("Tamanho do array: %d\n", n);
+    printf("Threads: %d\n\n", num_threads);
+
+    printf("--- Array Original ---\n");
+    print_array(arr, n > 20 ? 20 : n);
+    if (n > 20) printf("(exibindo apenas os 20 primeiros elementos)\n");
+    printf("\n");
 
     // Medição de tempo
     double start_time = omp_get_wtime();
     odd_even_sort_openmp_static(arr, n, num_threads);
     double end_time = omp_get_wtime();
 
-    printf("Tempo de execução: %f segundos\n", end_time - start_time);
+    printf("--- Resultados ---\n");
+    printf("Tempo de execução: %.6f segundos\n", end_time - start_time);
 
     printf("Array ordenado: ");
-    if (n <= 20) {
-        print_array(arr, n);
-    } else {
-        print_array(arr, 20);
-        printf("(exibindo apenas os 20 primeiros elementos)\n");
-    }
+    print_array(arr, n > 20 ? 20 : n);
+    if (n > 20) printf("(exibindo apenas os 20 primeiros elementos)\n");
 
     printf("Array está ordenado: %s\n", is_sorted(arr, n) ? "Sim" : "Não");
 

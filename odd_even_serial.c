@@ -65,13 +65,13 @@ int main(int argc, char *argv[]) {
     // Gerar array aleatório
     generate_random_array(arr, n, 1000);
 
-    printf("Array original: ");
-    if (n <= 20) {
-        print_array(arr, n);
-    } else {
-        print_array(arr, 20);
-        printf("(exibindo apenas os 20 primeiros elementos)\n");
-    }
+    printf("--- Configuração ---\n");
+    printf("Tamanho do array: %d\n\n", n);
+
+    printf("--- Array Original ---\n");
+    print_array(arr, n > 20 ? 20 : n);
+    if (n > 20) printf("(exibindo apenas os 20 primeiros elementos)\n");
+    printf("\n");
 
     // Medição de tempo
     struct timespec start, end;
@@ -81,18 +81,14 @@ int main(int argc, char *argv[]) {
 
     clock_gettime(CLOCK_MONOTONIC, &end);
 
-    double time_taken;
-    time_taken = (end.tv_sec - start.tv_sec) + (double)(end.tv_nsec - start.tv_nsec) / 1e9;
+    double time_taken = (end.tv_sec - start.tv_sec) + (double)(end.tv_nsec - start.tv_nsec) / 1e9;
 
-    printf("Tempo de execução: %f segundos\n", time_taken);
+    printf("--- Resultados ---\n");
+    printf("Tempo de execução: %.6f segundos\n", time_taken);
 
     printf("Array ordenado: ");
-    if (n <= 20) {
-        print_array(arr, n);
-    } else {
-        print_array(arr, 20);
-        printf("(exibindo apenas os 20 primeiros elementos)\n");
-    }
+    print_array(arr, n > 20 ? 20 : n);
+    if (n > 20) printf("(exibindo apenas os 20 primeiros elementos)\n");
 
     printf("Array está ordenado: %s\n", is_sorted(arr, n) ? "Sim" : "Não");
 

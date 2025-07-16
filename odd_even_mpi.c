@@ -3,7 +3,7 @@
 #include <time.h>
 #include <mpi.h> // MPI Header
 
-// --- Funções Auxiliares (a maioria inalterada) ---
+// --- Funções Auxiliares ---
 
 void swap(int *a, int *b) {
     int temp = *a;
@@ -11,38 +11,18 @@ void swap(int *a, int *b) {
     *b = temp;
 }
 
-// Realiza uma única fase da ordenação Odd-Even.
-// is_odd_phase = 0 para fase par, 1 para fase ímpar.
-void single_phase_odd_even(int arr[], int n, int is_odd_phase) {
-    if (is_odd_phase) { // Fase Ímpar: compara (arr[1], arr[2]), (arr[3], arr[4]), ...
-        for (int i = 1; i < n - 1; i += 2) {
-            if (arr[i] > arr[i + 1]) {
-                swap(&arr[i], &arr[i + 1]);
-            }
-        }
-    } else { // Fase Par: compara (arr[0], arr[1]), (arr[2], arr[3]), ...
+// Executa uma ÚNICA fase do Odd-Even Sort no array local
+void single_phase_odd_even(int arr[], int n, int phase) {
+    if (phase % 2 == 0) { // Fase Par
         for (int i = 1; i < n; i += 2) {
             if (arr[i - 1] > arr[i]) {
                 swap(&arr[i - 1], &arr[i]);
             }
         }
-    }
-}
-
-// Renomeada para clareza, será usada para ordenar os blocos locais
-void odd_even_sort_local(int arr[], int n) {
-    for (int phase = 0; phase < n; phase++) {
-        if (phase % 2 == 0) {
-            for (int i = 1; i < n; i += 2) {
-                if (arr[i - 1] > arr[i]) {
-                    swap(&arr[i - 1], &arr[i]);
-                }
-            }
-        } else {
-            for (int i = 1; i < n - 1; i += 2) {
-                if (arr[i] > arr[i + 1]) {
-                    swap(&arr[i], &arr[i + 1]);
-                }
+    } else { // Fase Ímpar
+        for (int i = 1; i < n - 1; i += 2) {
+            if (arr[i] > arr[i + 1]) {
+                swap(&arr[i], &arr[i + 1]);
             }
         }
     }
@@ -56,7 +36,9 @@ void print_array(int arr[], int n) {
 }
 
 void generate_random_array(int arr[], int n, int max_val) {
-    srand(time(NULL));
+    // Garante que a semente seja diferente para o rank 0, evitando arrays idênticos
+    // em execuções muito próximas.
+    srand(time(NULL)); 
     for (int i = 0; i < n; i++) {
         arr[i] = rand() % max_val;
     }
@@ -97,91 +79,93 @@ int main(int argc, char *argv[]) {
     if (rank == 0) {
         arr = (int*)malloc(n * sizeof(int));
         generate_random_array(arr, n, 1000);
-        printf("Array original: ");
+        printf("--- Configuração ---\n");
+        printf("Tamanho do array: %d\n", n);
+        printf("Processos: %d\n\n", size);
+
+        printf("--- Array Original ---\n");
         print_array(arr, n > 20 ? 20 : n);
-        if(n > 20) printf("...\n");
+        if (n > 20) printf("(exibindo apenas os 20 primeiros elementos)\n");
+        printf("\n");
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
-    double start_time = MPI_Wtime();
-
+    // Distribuição de dados para todos os processos
     MPI_Scatter(arr, local_n, MPI_INT, local_arr, local_n, MPI_INT, 0, MPI_COMM_WORLD);
 
-    // --- Loop Principal da Ordenação Otimizada ---
-    for (int phase = 0; phase < size; phase++) {
-        // 1. Ordena o bloco local. CRUCIAL para ter os elementos de fronteira corretos.
-        odd_even_sort_local(local_arr, local_n);
+    // Sincronização e medição de tempo, conforme especificado no PDF
+    MPI_Barrier(MPI_COMM_WORLD);
+    double total_start = MPI_Wtime();
+    double comm_time = 0.0;
 
-        int partner;
+    // Loop principal, executa n fases 
+    for (int phase = 0; phase < n; phase++) {
+        // 1. Computação local: uma fase de ordenação interna
+        single_phase_odd_even(local_arr, local_n, phase);
+
         // 2. Determina o parceiro de comunicação para a fase atual
-        if (phase % 2 == 0) { // Fase PAR: pares (0,1), (2,3)...
+        int partner;
+        if ((phase % 2) == 0) { // Fase Par Global
             partner = (rank % 2 == 0) ? rank + 1 : rank - 1;
-        } else { // Fase ÍMPAR: pares (1,2), (3,4)...
-            partner = (rank % 2 == 0) ? rank - 1 : rank + 1;
+        } else { // Fase Ímpar Global
+            partner = (rank % 2 != 0) ? rank + 1 : rank - 1;
         }
 
-        // Se o parceiro é válido (não está fora dos limites)
+        // 3. Comunicação nas fronteiras
         if (partner >= 0 && partner < size) {
-            // Aloca um buffer temporário para receber os dados do parceiro
-            int *partner_arr = (int*)malloc(local_n * sizeof(int));
+            int send_val, recv_val;
+
+            if (rank < partner) { // Processo da esquerda envia seu último elemento
+                send_val = local_arr[local_n - 1];
+            } else { // Processo da direita envia seu primeiro elemento
+                send_val = local_arr[0];
+            }
             
-            // Troca os blocos de dados com o parceiro
-            MPI_Sendrecv(local_arr, local_n, MPI_INT, partner, 0,
-                         partner_arr, local_n, MPI_INT, partner, 0,
+            // Medição específica do tempo de comunicação
+            double comm_start = MPI_Wtime();
+            MPI_Sendrecv(&send_val, 1, MPI_INT, partner, 0,
+                         &recv_val, 1, MPI_INT, partner, 0,
                          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            comm_time += (MPI_Wtime() - comm_start); // Acumula tempo
 
-            // Aloca um buffer para mesclar os dois blocos
-            int *merged_arr = (int*)malloc(local_n * 2 * sizeof(int));
-            
-            // Mescla os dados dependendo se é o processo da esquerda ou da direita
-            if (rank < partner) {
-                for (int i = 0; i < local_n; i++) {
-                    merged_arr[i] = local_arr[i];
-                    merged_arr[i + local_n] = partner_arr[i];
-                }
-            } else {
-                for (int i = 0; i < local_n; i++) {
-                    merged_arr[i] = partner_arr[i];
-                    merged_arr[i + local_n] = local_arr[i];
-                }
+            // Compara os valores trocados e atualiza se necessário
+            if (rank < partner) { // Esquerda fica com o menor
+                if (send_val > recv_val) local_arr[local_n - 1] = recv_val;
+            } else { // Direita fica com o maior
+                if (recv_val > send_val) local_arr[0] = recv_val;
             }
-
-            // Ordena o bloco mesclado
-            odd_even_sort_local(merged_arr, local_n * 2);
-
-            // Mantém a metade correta dos dados ordenados
-            if (rank < partner) {
-                for (int i = 0; i < local_n; i++) {
-                    local_arr[i] = merged_arr[i];
-                }
-            } else {
-                for (int i = 0; i < local_n; i++) {
-                    local_arr[i] = merged_arr[i + local_n];
-                }
-            }
-
-            // Libera a memória alocada
-            free(partner_arr);
-            free(merged_arr);
         }
     }
 
-    // Ordenação final para garantir a ordem local após a última troca
-    odd_even_sort_local(local_arr, local_n);
+    // Sincronização final e coleta de resultados
+    MPI_Barrier(MPI_COMM_WORLD);
+    double total_end = MPI_Wtime();
+    double total_time = total_end - total_start;
 
-    MPI_Gather(local_arr, local_n, MPI_INT, arr, local_n, MPI_INT, 0, MPI_COMM_WORLD);
+    // Usa MPI_Allgather para que todos os processos recebam o resultado final 
+    if (arr == NULL) arr = (int*)malloc(n * sizeof(int));
+    MPI_Allgather(local_arr, local_n, MPI_INT, arr, local_n, MPI_INT, MPI_COMM_WORLD);
 
-    double end_time = MPI_Wtime();
+    // Reduz os tempos para o processo 0 fazer a análise
+    double total_time_global, comm_time_global;
+    MPI_Reduce(&total_time, &total_time_global, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&comm_time, &comm_time_global, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
+    // Processo 0 imprime os resultados e a análise de performance
     if (rank == 0) {
-        printf("Tempo de execução MPI (otimizado): %f segundos\n", end_time - start_time);
         printf("Array ordenado: ");
         print_array(arr, n > 20 ? 20 : n);
-        if(n > 20) printf("...\n");
-        printf("Array está ordenado: %s\n", is_sorted(arr, n) ? "Sim" : "Não");
-        free(arr);
+        if (n > 20) printf("(exibindo apenas os 20 primeiros elementos)\n");
+        printf("Array está ordenado: %s\n\n", is_sorted(arr, n) ? "Sim" : "Não");
+
+        printf("--- Análise de Performance ---\n");
+        printf("Tempo Total (max): %.6f s\n", total_time_global);
+        printf("Tempo Comunicação (soma total): %.6f s\n", comm_time_global);
+
+        double overhead_percentage = (comm_time_global / (total_time_global * size)) * 100;
+        printf("Overhead de Comunicação (aprox): %.2f%%\n", overhead_percentage);
     }
 
+    free(arr);
     free(local_arr);
     MPI_Finalize();
     return 0;
