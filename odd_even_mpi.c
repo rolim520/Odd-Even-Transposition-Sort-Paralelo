@@ -4,7 +4,7 @@
 #include <string.h>
 #include <mpi.h> 
 
-// --- Funções Auxiliares ---
+// --- Funções Auxiliares (sem alterações) ---
 
 void swap(int *a, int *b) {
     int temp = *a;
@@ -83,16 +83,26 @@ int main(int argc, char *argv[]) {
     }
 
     int n = atoi(argv[1]);
-    if (n % size != 0) {
-        if (rank == 0) printf("O tamanho do array (%d) deve ser divisível pelo número de processos (%d).\n", n, size);
-        MPI_Finalize();
-        return 1;
+    
+    // --- Lógica para Distribuição Desigual ---
+    int base_chunk = n / size;
+    int remainder = n % size;
+    int local_n;
+
+    // Os primeiros 'remainder' processos recebem um elemento a mais
+    if (rank < remainder) {
+        local_n = base_chunk + 1;
+    } else {
+        local_n = base_chunk;
     }
 
-    int local_n = n / size;
     int *local_arr = (int*)malloc(local_n * sizeof(int));
     int *arr = NULL;
     double t_serial = 0.0;
+    
+    // Arrays para MPI_Scatterv e MPI_Gatherv
+    int *sendcounts = NULL;
+    int *displs = NULL;
 
     if (rank == 0) {
         arr = (int*)malloc(n * sizeof(int));
@@ -121,17 +131,32 @@ int main(int argc, char *argv[]) {
         printf("Array está ordenado: %s\n\n", is_sorted(arr_serial_copy, n) ? "Sim" : "Não");
         
         free(arr_serial_copy);
+
+        // Prepara os arrays para o Scatterv
+        sendcounts = malloc(size * sizeof(int));
+        displs = malloc(size * sizeof(int));
+        int current_displ = 0;
+        for (int i = 0; i < size; i++) {
+            sendcounts[i] = (i < remainder) ? base_chunk + 1 : base_chunk;
+            displs[i] = current_displ;
+            current_displ += sendcounts[i];
+        }
     }
 
     // Broadcast do tempo serial para todos os processos
     MPI_Bcast(&t_serial, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    MPI_Scatter(arr, local_n, MPI_INT, local_arr, local_n, MPI_INT, 0, MPI_COMM_WORLD);
+    // Distribui os dados usando Scatterv
+    MPI_Scatterv(arr, sendcounts, displs, MPI_INT,
+                 local_arr, local_n, MPI_INT,
+                 0, MPI_COMM_WORLD);
 
     MPI_Barrier(MPI_COMM_WORLD);
     double total_start = MPI_Wtime();
     double comm_time = 0.0;
 
+    // Loop principal não precisa de alteração, pois a lógica de borda
+    // funciona independentemente do tamanho local do vizinho.
     for (int phase = 0; phase < n; phase++) {
         single_phase_odd_even(local_arr, local_n, phase);
         int partner;
@@ -169,8 +194,10 @@ int main(int argc, char *argv[]) {
     double total_time = total_end - total_start;
     double computation_time = total_time - comm_time;
 
-    if (arr == NULL) arr = (int*)malloc(n * sizeof(int));
-    MPI_Allgather(local_arr, local_n, MPI_INT, arr, local_n, MPI_INT, MPI_COMM_WORLD);
+    // Coleta os dados usando Gatherv (mais eficiente que Allgatherv, já que só o rank 0 precisa)
+    MPI_Gatherv(local_arr, local_n, MPI_INT,
+                arr, sendcounts, displs, MPI_INT,
+                0, MPI_COMM_WORLD);
 
     double t_parallel, comm_time_sum, computation_time_sum;
     MPI_Reduce(&total_time, &t_parallel, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
@@ -199,6 +226,9 @@ int main(int argc, char *argv[]) {
         printf("Eficiência de Comunicação: %.4f\n", comm_efficiency);
         printf("Speedup: %.4f\n", speedup);
         printf("Eficiência: %.4f\n", efficiency);
+        
+        free(sendcounts);
+        free(displs);
     }
 
     free(arr);
