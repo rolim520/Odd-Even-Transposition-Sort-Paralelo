@@ -42,8 +42,20 @@ clean:
 # Regra para testes básicos, conforme o documento do projeto
 test: all
 	@echo "--- Testando Serial (1K elementos) ---"
-	./$(TARGET_SERIAL) 1000
-	@echo "\n--- Testando OpenMP (1K elementos, 2 threads) ---"
-	./$(TARGET_OPENMP) 1000 2
-	@echo "\n--- Testando MPI (1K elementos, 2 processos) ---"
-	mpirun -np 2 ./$(TARGET_MPI) 1000
+	@./$(TARGET_SERIAL) 1000
+	@echo
+	@echo "============================================================"
+	@echo
+	@echo "--- Testando OpenMP (1K elementos, 4 threads) ---"
+	@./$(TARGET_OPENMP) 1000 4
+	@echo
+	@echo "============================================================"
+	@echo
+	@echo "--- Testando MPI (1K elementos, 4 processos) ---"
+	@mpirun -np 4 ./$(TARGET_MPI) 1000
+
+# Regra para o benchmark serial
+benchmark: odd_even_serial_benchmark.c
+	@echo "Executando benchmark serial..."
+	@$(CC) $(CFLAGS) -o build/odd_even_serial_benchmark odd_even_serial_benchmark.c
+	@./build/odd_even_serial_benchmark
