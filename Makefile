@@ -20,19 +20,18 @@ all: $(TARGET_SERIAL) $(TARGET_OPENMP) $(TARGET_MPI)
 # Regra para o código Serial
 # $@ é o nome do alvo (build/odd_even_serial)
 # $^ são as dependências (odd_even_serial.c)
-$(TARGET_SERIAL): odd_even_serial.c
+$(TARGET_SERIAL): odd_even_serial.c utils.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Regra para o código OpenMP
-$(TARGET_OPENMP): odd_even_openmp.c
+$(TARGET_OPENMP): odd_even_openmp.c utils.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(LDFLAGS_OPENMP) -o $@ $^
 
 # Regra para o código MPI <-- MUDANÇA PRINCIPAL AQUI
-$(TARGET_MPI): odd_even_mpi.c
+$(TARGET_MPI): odd_even_mpi.c utils.h
 	@mkdir -p $(dir $@)
-	# Usa o compilador MPI: $(MPICC)
 	$(MPICC) $(CFLAGS) -o $@ $^
 
 # Regra de limpeza
