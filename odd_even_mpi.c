@@ -4,6 +4,7 @@
 #include <string.h>
 #include <mpi.h> 
 #include "utils.h" 
+#include "csv_utils.h" 
 
 // --- Funções Auxiliares (sem alterações) ---
 
@@ -196,6 +197,8 @@ int main(int argc, char *argv[]) {
         printf("Eficiência de Comunicação: %.4f\n", comm_efficiency);
         printf("Speedup: %.4f\n", speedup);
         printf("Eficiência: %.4f\n", efficiency);
+
+        save_mpi_result("data/mpi.csv", n, size, t_parallel, computation_time_sum, comm_time_sum, overhead_abs, overhead_rel, comm_efficiency, speedup, efficiency);
     }
 
     // Todos os processos liberam a memória que alocaram

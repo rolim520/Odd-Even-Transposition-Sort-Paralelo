@@ -20,19 +20,19 @@ all: $(TARGET_SERIAL) $(TARGET_OPENMP) $(TARGET_MPI)
 # Regra para o código Serial
 # $@ é o nome do alvo (build/odd_even_serial)
 # $^ são as dependências (odd_even_serial.c)
-$(TARGET_SERIAL): odd_even_serial.c utils.h
+$(TARGET_SERIAL): odd_even_serial.c utils.h csv_utils.h
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ odd_even_serial.c
 
 # Regra para o código OpenMP
-$(TARGET_OPENMP): odd_even_openmp.c utils.h
+$(TARGET_OPENMP): odd_even_openmp.c utils.h csv_utils.h
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(LDFLAGS_OPENMP) -o $@ $^
+	$(CC) $(CFLAGS) $(LDFLAGS_OPENMP) -o $@ odd_even_openmp.c
 
 # Regra para o código MPI <-- MUDANÇA PRINCIPAL AQUI
-$(TARGET_MPI): odd_even_mpi.c utils.h
+$(TARGET_MPI): odd_even_mpi.c utils.h csv_utils.h
 	@mkdir -p $(dir $@)
-	$(MPICC) $(CFLAGS) -o $@ $^
+	$(MPICC) $(CFLAGS) -o $@ odd_even_mpi.c
 
 # Regra de limpeza
 clean:
@@ -40,6 +40,7 @@ clean:
 
 # Regra para testes básicos, conforme o documento do projeto
 test: all
+	@mkdir -p data
 	@echo "--- Testando Serial (1K elementos) ---"
 	@./$(TARGET_SERIAL) 1000
 	@echo

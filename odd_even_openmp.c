@@ -4,6 +4,7 @@
 
 #include <string.h>
 #include "utils.h"
+#include "csv_utils.h"
 
 void swap(int *a, int *b) {
     int temp = *a;
@@ -147,6 +148,7 @@ int main(int argc, char *argv[]) {
     printf("  Speedup: %.4f\n", speedup_static);
     printf("  Eficiência: %.4f\n", efficiency_static);
     printf("  Array está ordenado: %s\n\n", is_sorted(arr_temp, n) ? "Sim" : "Não");
+    save_openmp_result("data/openmp.csv", n, num_threads, "static", t_parallel_static, speedup_static, efficiency_static);
 
     // Dynamic
     memcpy(arr_temp, arr_base, n * sizeof(int));
@@ -161,6 +163,7 @@ int main(int argc, char *argv[]) {
     printf("  Speedup: %.4f\n", speedup_dynamic);
     printf("  Eficiência: %.4f\n", efficiency_dynamic);
     printf("  Array está ordenado: %s\n\n", is_sorted(arr_temp, n) ? "Sim" : "Não");
+    save_openmp_result("data/openmp.csv", n, num_threads, "dynamic", t_parallel_dynamic, speedup_dynamic, efficiency_dynamic);
 
     // Guided
     memcpy(arr_temp, arr_base, n * sizeof(int));
@@ -175,6 +178,7 @@ int main(int argc, char *argv[]) {
     printf("  Speedup: %.4f\n", speedup_guided);
     printf("  Eficiência: %.4f\n", efficiency_guided);
     printf("  Array está ordenado: %s\n", is_sorted(arr_temp, n) ? "Sim" : "Não");
+    save_openmp_result("data/openmp.csv", n, num_threads, "guided", t_parallel_guided, speedup_guided, efficiency_guided);
 
     free(arr_base);
     free(arr_temp);

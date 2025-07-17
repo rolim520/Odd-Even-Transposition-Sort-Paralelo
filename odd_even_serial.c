@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "utils.h"
+#include "csv_utils.h"
 
 void swap(int *a, int *b) {
     int temp = *a;
@@ -71,6 +72,9 @@ int main(int argc, char *argv[]) {
     if (n > 20) printf("(exibindo apenas os 20 primeiros elementos)\n");
 
     printf("Array está ordenado: %s\n", is_sorted(arr, n) ? "Sim" : "Não");
+
+    // Salva o resultado no arquivo CSV
+    save_serial_result("data/serial.csv", n, time_taken);
 
     free(arr);
     return 0;
