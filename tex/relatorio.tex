@@ -214,42 +214,61 @@ Após a coleta, um script em Python, \texttt{plot\_graphs.py}, foi utilizado par
 Nesta seção, apresentamos os resultados obtidos nos experimentos, comparando o desempenho das implementações serial, OpenMP e MPI.
 
 
+
 \subsection{Tabelas de Desempenho}
+As tabelas a seguir resumem os dados de desempenho obtidos a partir da média de múltiplas execuções.
 
 \begin{table}[H]
 \centering
-\caption{Tempo de execução da implementação serial.}
-\label{tab:serial}
-\begin{tabular}{@{}lr@{}}
+\caption{Análise de desempenho do OpenMP por política de schedule para N=100.000.}
+\label{tab:openmp-schedule}
+\begin{tabular}{lcccc}
 \toprule
-\textbf{Tamanho do Array (N)} & \textbf{Tempo (s)} \\ \midrule
-100.000                       & 24.583187          \\ \bottomrule
+\textbf{Schedule} & \textbf{Threads} & \textbf{Tempo (s)} & \textbf{Speedup} & \textbf{Eficiência} \\
+\midrule
+static            & 2                & 3.3781             & 2.5975           & 1.2988              \\
+                  & 4                & 1.3457             & 6.5227           & 1.6307              \\
+                  & 8                & 1.1291             & 7.7389           & 0.9674              \\
+\midrule
+guided            & 2                & 3.9768             & 2.2073           & 1.1036              \\
+                  & 4                & 2.5667             & 3.4178           & 0.8544              \\
+                  & 8                & 1.6368             & 5.3378           & 0.6672              \\
+\midrule
+dynamic           & 2                & 124.5843           & 0.0704           & 0.0352              \\
+                  & 4                & 110.8358           & 0.0792           & 0.0198              \\
+                  & 8                & 96.6977            & 0.0904           & 0.0113              \\
+\bottomrule
 \end{tabular}
 \end{table}
 
 \begin{table}[H]
 \centering
-\caption{Desempenho da versão OpenMP com $N=100.000$.}
-\label{tab:openmp}
-\begin{tabular}{@{}crrr@{}}
+\caption{Análise de escalabilidade da implementação MPI (P > 1).}
+\label{tab:mpi-all-sizes-filtered}
+\begin{tabular}{cccccc}
 \toprule
-\textbf{Threads (P)} & \textbf{Tempo (s)} & \textbf{Speedup} & \textbf{Eficiência} \\ \midrule
-2                    & 12.334185          & 1.9931           & 0.9966              \\
-4                    & 6.301542           & 3.9011           & 0.9753              \\
-8                    & 3.518641           & 6.9866           & 0.8733              \\ \bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[H]
-\centering
-\caption{Desempenho da versão MPI com $N=100.000$.}
-\label{tab:mpi}
-\begin{tabular}{@{}crrrc@{}}
-\toprule
-\textbf{Processos (P)} & \textbf{Tempo (s)} & \textbf{Speedup} & \textbf{Eficiência} & \textbf{Overhead (\%)} \\ \midrule
-2                      & 15.631852          & 1.5726           & 0.7863              & 21.05                 \\
-4                      & 8.794125           & 2.7954           & 0.6988              & 30.01                 \\
-8                      & 5.215874           & 4.7131           & 0.5891              & 41.02                 \\ \bottomrule
+\textbf{Tamanho} & \textbf{Processos} & \textbf{Tempo (s)} & \textbf{Speedup} & \textbf{Eficiência} & \textbf{Overhead (\%)} \\
+\midrule
+1,000 & 2 & 0.0005 & 1.1903 & 0.5952 & 45.08 \\
+ & 4 & 0.0012 & 0.5036 & 0.1259 & 83.11 \\
+ & 8 & 0.0015 & 0.4402 & 0.0550 & 90.50 \\
+\midrule
+5,000 & 2 & 0.0071 & 1.6614 & 0.8307 & 18.43 \\
+ & 4 & 0.0056 & 2.1534 & 0.5383 & 46.30 \\
+ & 8 & 0.0080 & 1.7363 & 0.2170 & 74.67 \\
+\midrule
+10,000 & 2 & 0.0250 & 1.7844 & 0.8922 & 11.77 \\
+ & 4 & 0.0163 & 2.7237 & 0.6810 & 30.78 \\
+ & 8 & 0.0196 & 2.8041 & 0.3505 & 61.30 \\
+\midrule
+50,000 & 2 & 0.6529 & 2.8441 & 1.4221 & 3.85 \\
+ & 4 & 0.3168 & 5.8158 & 1.4539 & 11.14 \\
+ & 8 & 0.3007 & 6.5020 & 0.8128 & 36.21 \\
+\midrule
+100,000 & 2 & 3.7764 & 2.3194 & 1.1597 & 1.93 \\
+ & 4 & 1.8673 & 4.7007 & 1.1752 & 21.74 \\
+ & 8 & 1.2315 & 7.4138 & 0.9267 & 33.26 \\
+\bottomrule
 \end{tabular}
 \end{table}
 
