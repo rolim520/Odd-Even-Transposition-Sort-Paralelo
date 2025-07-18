@@ -71,7 +71,7 @@
 
 \section{Introdução}
 
-O trabalho tem como objetivo explorar a paralelização do algoritmo de ordenação \textit{Odd-Even Transposition Sort}. Este algoritmo de ordenação se destaca por sua estrutura inerentemente paralelizável. O algoritmo opera em fases alternadas: uma fase "par" (even) onde elementos em posições de índice par $(i, i+1)$ são comparados e trocados se estiverem fora de ordem, e uma fase "ímpar" (odd) que faz o mesmo para elementos em posições de índice ímpar. Após $n$ fases, onde $n$ é o número de elementos, o array está garantidamente ordenado.
+O trabalho tem como objetivo explorar a paralelização do algoritmo de ordenação \textit{Odd-Even Transposition Sort}. Este algoritmo de ordenação se destaca por sua estrutura inerentemente paralelizável. O algoritmo opera em fases alternadas: uma fase "par" (even), onde são realizadas comparações entre elementos em posições de índice par e seus sucessores (i, i+1), e uma fase "ímpar" (odd), que faz o mesmo para elementos em posições de índice ímpar e seus sucessores. Após $n$ fases, onde $n$ é o número de elementos, o array está garantidamente ordenado.
 
 O objetivo principal deste projeto é implementar e analisar o desempenho de duas versões paralelas deste algoritmo: uma utilizando o paradigma de memória compartilhada com \textbf{OpenMP} e outra utilizando o paradigma de troca de mensagens com \textbf{MPI (Message Passing Interface)}. O desempenho das versões paralelas será comparado com uma implementação serial de referência para avaliar métricas como \textit{speedup}, eficiência e \textit{overhead}.
 
@@ -295,15 +295,40 @@ dynamic           & 2                & 124.5843           & 0.0704           & 0
     \label{fig:eficiencia}
 \end{figure}
 
-\section{Discussão}
+\section{Discussão e Interpretação dos Resultados}
 
-\paragraph{Análise da Versão OpenMP} A implementação com OpenMP apresentou excelente desempenho, com speedup quase ideal (Tabela \ref{tab:openmp} e Figura \ref{fig:speedup}). Com 8 threads, o speedup de 7.0x (eficiência de 87\%) mostra que o overhead de criação e gerenciamento das threads é baixo para este problema.
+\paragraph{Análise das Políticas de Agendamento (Scheduling) em OpenMP}
+A escolha da política de agendamento em OpenMP revelou-se um fator crítico para o desempenho, como pode ser visto na Tabela \ref{tab:openmp-schedule} e nas Figuras \ref{fig:speedup} e \ref{fig:eficiencia}.
+\begin{itemize}
+    \item \textbf{Schedule Static:} A política \texttt{static} apresentou o melhor desempenho em todos os cenários. Para um array de 100.000 elementos, alcançou um speedup de 7.74 com 8 threads. Isso ocorre porque o trabalho dentro de cada laço paralelo do Odd-Even Sort é perfeitamente balanceado; cada iteração executa a mesma tarefa (uma comparação e uma possível troca). O agendamento estático, que distribui as iterações de forma equitativa e com baixo custo inicial, é ideal para essa carga de trabalho homogênea.
+    
+    \item \textbf{Schedule Guided:} A política \texttt{guided} obteve um desempenho intermediário. Embora mais adaptativa que a estática, ela ainda incorre em um overhead maior para gerenciar a distribuição de blocos de iterações, o que não traz benefícios em um cenário de carga balanceada.
+    
+    \item \textbf{Schedule Dynamic:} A política \texttt{dynamic} mostrou um desempenho drasticamente inferior, sendo mais lenta até que a versão serial (speedup < 1). O alto overhead de alocar cada iteração (ou pequenos blocos) dinamicamente para as threads superou completamente qualquer ganho com a paralelização. Isso demonstra que para problemas com carga de trabalho regular, o custo de gerenciamento do agendamento dinâmico é proibitivo.
+\end{itemize}
 
-\paragraph{Análise da Versão MPI} A versão MPI também obteve um bom ganho, mas seu speedup foi inferior ao do OpenMP (Figura \ref{fig:speedup}). O motivo é o \textbf{overhead de comunicação}. A Tabela \ref{tab:mpi} mostra que o overhead aumentou de 21\% para 41\% ao passar de 2 para 8 processos, tornando-se o gargalo principal.
+\paragraph{Análise da Escalabilidade do MPI}
+A implementação MPI demonstrou uma forte dependência entre o tamanho do problema e o número de processos. Conforme a Tabela \ref{tab:mpi-all-sizes-filtered}:
+\begin{itemize}
+    \item Para \textbf{arrays pequenos} (e.g., N=1.000), o desempenho foi fraco, com overhead de comunicação altíssimo (chegando a 90.5\% com 8 processos). O tempo gasto para trocar mensagens entre processos em cada uma das $n$ fases foi maior do que o tempo economizado com a computação paralela.
+    
+    \item Para \textbf{arrays grandes} (e.g., N=100.000), a implementação MPI mostrou boa escalabilidade, alcançando um speedup de 7.41 com 8 processos. Nesses casos, a quantidade de computação local em cada processo tornou o custo relativo da comunicação muito menor (apenas 33.26\% de overhead com 8 processos). O Gráfico \ref{fig:tempo_vs_tamanho} ilustra claramente que, com 8 processos, a performance do MPI se aproxima muito da melhor versão OpenMP para entradas maiores.
+\end{itemize}
 
-\paragraph{Comparativo: OpenMP vs. MPI} A Figura \ref{fig:tempo_vs_tamanho} mostra que o OpenMP foi mais rápido que o MPI. Threads em memória compartilhada acessam dados diretamente, enquanto processos MPI precisam de uma comunicação mais lenta. A queda na eficiência (Figura \ref{fig:eficiencia}) é mais acentuada no MPI, reforçando que a comunicação é o fator limitante.
+\paragraph{Comparativo OpenMP vs. MPI}
+Observando as Figuras \ref{fig:speedup} e \ref{fig:eficiencia}, a versão \texttt{OpenMP (static)} consistentemente superou a implementação MPI em speedup e eficiência para N=100.000, embora a diferença diminua com 8 processos. Isso é esperado, pois, em uma máquina de nó único (multi-core), o paradigma de memória compartilhada do OpenMP incorre em um overhead de comunicação muito menor do que a troca de mensagens explícita do MPI.
+
+\paragraph{Eficiência Superior a 100\% (Super-Speedup)}
+Um fenômeno notável, visível na Figura \ref{fig:eficiencia} e em ambas as tabelas, é a ocorrência de eficiência maior que 1 (e.g., 1.63 para OpenMP com 4 threads). Isso é conhecido como \textit{super-speedup} e geralmente ocorre devido a efeitos de cache. Quando o problema é dividido, o sub-array alocado para cada thread/processo pode se tornar pequeno o suficiente para caber na cache de nível mais rápido (L1/L2) do processador. A versão serial, ao contrário, processa o array inteiro, potencialmente causando mais falhas de cache (\textit{cache misses}) e acessando a memória RAM, que é mais lenta. O ganho de desempenho ao evitar acessos à RAM pode ser tão significativo que o speedup ultrapassa o número de processadores, resultando em uma eficiência "ideal".
 
 \section{Conclusão}
-O projeto demonstrou a aceleração do Odd-Even Sort com paralelismo. A implementação \textbf{OpenMP} foi a mais eficiente neste cenário de máquina multicore, com baixo overhead e ótima escalabilidade. A implementação \textbf{MPI}, embora tenha acelerado o processo, foi limitada pelo custo da comunicação, sendo mais adequada para sistemas de memória distribuída (clusters) ou problemas com menor razão comunicação/computação. Para o ambiente testado, o modelo de memória compartilhada (OpenMP) foi superior.
+
+Este projeto demonstrou com sucesso a paralelização do algoritmo Odd-Even Transposition Sort utilizando os paradigmas de memória compartilhada (OpenMP) e troca de mensagens (MPI). Os resultados confirmaram que a estrutura do algoritmo é altamente propícia à paralelização, mas o desempenho final depende fortemente da implementação, das características da carga de trabalho e do balanço entre computação e comunicação.
+
+A principal conclusão é que, para uma máquina de nó único, a implementação OpenMP com agendamento estático foi a mais eficiente. Isso se deve à natureza regular e balanceada do problema, onde o baixo overhead do compartilhamento de memória e da distribuição estática de tarefas se sobressai. A análise das políticas de agendamento também serviu como um importante lembrete de que a escolha da ferramenta paralela deve ser adequada ao problema.
+
+A implementação MPI, embora menos performática em um único nó devido ao seu overhead de comunicação inerente, mostrou excelente escalabilidade para problemas grandes. Isso indica que seu desempenho seria altamente competitivo e provavelmente superior ao do OpenMP em um ambiente de computação distribuída (cluster), onde a memória não é compartilhada e a troca de mensagens é o único meio de comunicação.
+
+O projeto atingiu seus objetivos, permitindo uma análise prática e quantitativa das métricas de desempenho como speedup, eficiência e overhead. A automação da coleta de dados e geração de gráficos foi fundamental para uma análise sistemática e reprodutível, reforçando as boas práticas em computação de alto desempenho.
 
 \end{document}
