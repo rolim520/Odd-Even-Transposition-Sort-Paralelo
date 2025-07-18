@@ -28,17 +28,20 @@ all: $(TARGET_SERIAL) $(TARGET_OPENMP) $(TARGET_MPI)
 # $^ é uma variável automática que representa todas as dependências (odd_even_serial.c utils.h csv_utils.h)
 $(TARGET_SERIAL): odd_even_serial.c utils.h csv_utils.h
 	@mkdir -p $(dir $@) # Cria o diretório 'build/' se não existir. O '@' suprime a exibição do comando.
-	$(CC) $(CFLAGS) -o $@ odd_even_serial.c # Compila o código
+	# Compila o código
+	$(CC) $(CFLAGS) -o $@ odd_even_serial.c
 
 # Regra para o código OpenMP
 $(TARGET_OPENMP): odd_even_openmp.c utils.h csv_utils.h
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(LDFLAGS_OPENMP) -o $@ odd_even_openmp.c # Compila usando as flags do OpenMP
+	# Compila usando as flags do OpenMP
+	$(CC) $(CFLAGS) $(LDFLAGS_OPENMP) -o $@ odd_even_openmp.c
 
 # Regra para o código MPI
 $(TARGET_MPI): odd_even_mpi.c utils.h csv_utils.h
 	@mkdir -p $(dir $@)
-	$(MPICC) $(CFLAGS) -o $@ odd_even_mpi.c # Compila usando o compilador wrapper do MPI
+	# Compila usando o compilador wrapper do MPI
+	$(MPICC) $(CFLAGS) -o $@ odd_even_mpi.c
 
 # Regra de limpeza: remove o diretório de build e seu conteúdo
 clean:
