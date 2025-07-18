@@ -18,31 +18,28 @@ def gerar_grafico_tempo_execucao():
         print(f"Criando diretório '{caminho_graficos}'...")
         os.makedirs(caminho_graficos)
 
-    arquivo_serial = os.path.join(caminho_base_dados, 'serial.csv')
-    arquivo_openmp = os.path.join(caminho_base_dados, 'openmp.csv')
-    arquivo_mpi = os.path.join(caminho_base_dados, 'mpi.csv')
+    arquivo_serial = os.path.join(caminho_base_dados, 'serial_average.csv')
+    arquivo_openmp = os.path.join(caminho_base_dados, 'openmp_average.csv')
+    arquivo_mpi = os.path.join(caminho_base_dados, 'mpi_average.csv')
 
     # --- 2. Carregamento e Processamento dos Dados ---
     try:
-        df_serial = pd.read_csv(arquivo_serial)
-        df_openmp = pd.read_csv(arquivo_openmp)
-        df_mpi = pd.read_csv(arquivo_mpi)
-        print("Arquivos CSV carregados com sucesso.")
+        media_serial = pd.read_csv(arquivo_serial)
+        media_openmp_full = pd.read_csv(arquivo_openmp)
+        media_mpi_full = pd.read_csv(arquivo_mpi)
+        print("Arquivos CSV de médias carregados com sucesso.")
     except FileNotFoundError as e:
         print(f"Erro: Arquivo não encontrado - {e}")
-        print("Verifique se os arquivos CSV estão no diretório 'data/'.")
+        print("Verifique se os arquivos *_average.csv estão no diretório 'data/'.")
         return
 
     # --- Processamento Serial ---
-    media_serial = df_serial.groupby('Tamanho')['Tempo(s)'].mean().reset_index()
     print("\nDados da execução Serial (Média):")
     print(media_serial)
 
     # --- Processamento OpenMP ---
     # Filtra para usar apenas os dados com 8 threads
-    df_openmp_8_threads = df_openmp[df_openmp['Threads'] == 8].copy()
-    # Calcula a média de tempo para cada schedule e tamanho
-    media_openmp = df_openmp_8_threads.groupby(['Tamanho', 'Schedule'])['Tempo(s)'].mean().reset_index()
+    media_openmp = media_openmp_full[media_openmp_full['Threads'] == 8].copy()
     
     # Separa os dados por schedule para plotagem
     media_openmp_static = media_openmp[media_openmp['Schedule'] == 'static']
@@ -54,9 +51,7 @@ def gerar_grafico_tempo_execucao():
 
     # --- Processamento MPI ---
     # Filtra para usar apenas os dados com 8 processos
-    df_mpi_8_procs = df_mpi[df_mpi['Processos'] == 8].copy()
-    # Calcula a média de tempo para cada tamanho
-    media_mpi = df_mpi_8_procs.groupby('Tamanho')['TempoTotal(max)'].mean().reset_index()
+    media_mpi = media_mpi_full[media_mpi_full['Processos'] == 8].copy()
     media_mpi = media_mpi.rename(columns={'TempoTotal(max)': 'Tempo(s)'})
     
     print("\nDados da execução MPI (Média, 8 Processos):")
@@ -111,22 +106,21 @@ def gerar_grafico_eficiencia_vs_processos():
     if not os.path.exists(caminho_graficos):
         os.makedirs(caminho_graficos)
 
-    arquivo_openmp = os.path.join(caminho_base_dados, 'openmp.csv')
-    arquivo_mpi = os.path.join(caminho_base_dados, 'mpi.csv')
+    arquivo_openmp = os.path.join(caminho_base_dados, 'openmp_average.csv')
+    arquivo_mpi = os.path.join(caminho_base_dados, 'mpi_average.csv')
 
     # --- 2. Carregamento e Processamento dos Dados ---
     try:
         df_openmp = pd.read_csv(arquivo_openmp)
         df_mpi = pd.read_csv(arquivo_mpi)
-        print("Arquivos CSV para o gráfico de eficiência carregados com sucesso.")
+        print("Arquivos CSV de médias para o gráfico de eficiência carregados com sucesso.")
     except FileNotFoundError as e:
         print(f"Erro: Arquivo não encontrado - {e}")
-        print("Verifique se os arquivos CSV estão no diretório 'data/'.")
+        print("Verifique se os arquivos *_average.csv estão no diretório 'data/'.")
         return
 
     # --- Processamento OpenMP ---
-    df_openmp_filtrado = df_openmp[df_openmp['Tamanho'] == TAMANHO_ENTRADA].copy()
-    media_openmp = df_openmp_filtrado.groupby(['Threads', 'Schedule'])['Eficiencia'].mean().reset_index()
+    media_openmp = df_openmp[df_openmp['Tamanho'] == TAMANHO_ENTRADA].copy()
     
     media_openmp_static = media_openmp[media_openmp['Schedule'] == 'static']
     media_openmp_dynamic = media_openmp[media_openmp['Schedule'] == 'dynamic']
@@ -136,8 +130,7 @@ def gerar_grafico_eficiencia_vs_processos():
     print(media_openmp)
 
     # --- Processamento MPI ---
-    df_mpi_filtrado = df_mpi[df_mpi['Tamanho'] == TAMANHO_ENTRADA].copy()
-    media_mpi = df_mpi_filtrado.groupby('Processos')['Eficiencia'].mean().reset_index()
+    media_mpi = df_mpi[df_mpi['Tamanho'] == TAMANHO_ENTRADA].copy()
     
     print(f"\nDados de Eficiência MPI (Média, N={TAMANHO_ENTRADA:,}):")
     print(media_mpi)
@@ -189,22 +182,21 @@ def gerar_grafico_speedup_vs_processos():
     if not os.path.exists(caminho_graficos):
         os.makedirs(caminho_graficos)
 
-    arquivo_openmp = os.path.join(caminho_base_dados, 'openmp.csv')
-    arquivo_mpi = os.path.join(caminho_base_dados, 'mpi.csv')
+    arquivo_openmp = os.path.join(caminho_base_dados, 'openmp_average.csv')
+    arquivo_mpi = os.path.join(caminho_base_dados, 'mpi_average.csv')
 
     # --- 2. Carregamento e Processamento dos Dados ---
     try:
         df_openmp = pd.read_csv(arquivo_openmp)
         df_mpi = pd.read_csv(arquivo_mpi)
-        print("Arquivos CSV para o gráfico de speedup carregados com sucesso.")
+        print("Arquivos CSV de médias para o gráfico de speedup carregados com sucesso.")
     except FileNotFoundError as e:
         print(f"Erro: Arquivo não encontrado - {e}")
-        print("Verifique se os arquivos CSV estão no diretório 'data/'.")
+        print("Verifique se os arquivos *_average.csv estão no diretório 'data/'.")
         return
 
     # --- Processamento OpenMP ---
-    df_openmp_filtrado = df_openmp[df_openmp['Tamanho'] == TAMANHO_ENTRADA].copy()
-    media_openmp = df_openmp_filtrado.groupby(['Threads', 'Schedule'])['Speedup'].mean().reset_index()
+    media_openmp = df_openmp[df_openmp['Tamanho'] == TAMANHO_ENTRADA].copy()
     
     media_openmp_static = media_openmp[media_openmp['Schedule'] == 'static']
     media_openmp_dynamic = media_openmp[media_openmp['Schedule'] == 'dynamic']
@@ -214,8 +206,7 @@ def gerar_grafico_speedup_vs_processos():
     print(media_openmp)
 
     # --- Processamento MPI ---
-    df_mpi_filtrado = df_mpi[df_mpi['Tamanho'] == TAMANHO_ENTRADA].copy()
-    media_mpi = df_mpi_filtrado.groupby('Processos')['Speedup'].mean().reset_index()
+    media_mpi = df_mpi[df_mpi['Tamanho'] == TAMANHO_ENTRADA].copy()
     
     print(f"\nDados de Speedup MPI (Média, N={TAMANHO_ENTRADA:,}):")
     print(media_mpi)
