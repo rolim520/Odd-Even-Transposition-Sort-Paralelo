@@ -181,6 +181,26 @@ if (partner >= 0 && partner < size) {
 }
 \end{lstlisting}
 
+\subsection{Métricas de Desempenho}
+Para avaliar a performance das implementações paralelas, foram definidas e calculadas as seguintes métricas, exportadas para arquivos CSV ao final de cada execução.
+
+\begin{itemize}
+    \item \textbf{Tempo Serial ($T_s$):} O tempo de parede (wall-clock time) para executar a versão sequencial do algoritmo. Serve como linha de base para os cálculos de aceleração.
+    
+    \item \textbf{Tempo Paralelo ($T_p$):} O tempo de parede da versão paralela. Foi calculado como o tempo máximo entre todos os processos (\texttt{MPI\_MAX}), pois o tempo total é determinado pelo processo que demora mais para terminar.
+    
+    \item \textbf{Speedup ($S$):} Mede o ganho de desempenho da versão paralela em relação à serial. É calculado pela razão $S = T_s / T_p$. Um speedup de $k$ significa que a versão paralela foi $k$ vezes mais rápida.
+    
+    \item \textbf{Eficiência ($E$):} Mede quão bem os recursos de processamento foram aproveitados. É calculada como $E = S / P$, onde $P$ é o número de processos/threads. Uma eficiência de 1 (ou 100\%) é ideal, indicando que todos os processadores foram usados de forma produtiva durante todo o tempo.
+    
+    \item \textbf{Overhead de Comunicação:} Representa o tempo gasto em atividades que não são computação útil, principalmente a troca de mensagens em MPI. Foi calculado de duas formas:
+    \begin{itemize}
+        \item \textbf{Tempo de Comunicação (soma):} Soma do tempo gasto em chamadas \texttt{MPI\_Sendrecv} por todos os processos.
+        \item \textbf{Overhead Relativo (\%):} Percentual do tempo total (soma de computação e comunicação de todos os processos) que foi gasto apenas com comunicação. Esta métrica é útil para entender o impacto da comunicação na performance geral.
+    \end{itemize}
+\end{itemize}
+
+
 \subsection{Automação da Coleta de Dados e Geração de Gráficos}
 Para garantir a consistência e a reprodutibilidade dos experimentos, o processo de coleta de dados e a criação dos gráficos foram automatizados com o uso de scripts.
 
