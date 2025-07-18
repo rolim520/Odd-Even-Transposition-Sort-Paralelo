@@ -38,10 +38,7 @@ def gerar_grafico_tempo_execucao():
     print(media_serial)
 
     # --- Processamento OpenMP ---
-    # Filtra para usar apenas os dados com 8 threads
     media_openmp = media_openmp_full[media_openmp_full['Threads'] == 8].copy()
-    
-    # Separa os dados por schedule para plotagem
     media_openmp_static = media_openmp[media_openmp['Schedule'] == 'static']
     media_openmp_dynamic = media_openmp[media_openmp['Schedule'] == 'dynamic']
     media_openmp_guided = media_openmp[media_openmp['Schedule'] == 'guided']
@@ -50,7 +47,6 @@ def gerar_grafico_tempo_execucao():
     print(media_openmp)
 
     # --- Processamento MPI ---
-    # Filtra para usar apenas os dados com 8 processos
     media_mpi = media_mpi_full[media_mpi_full['Processos'] == 8].copy()
     media_mpi = media_mpi.rename(columns={'TempoTotal(max)': 'Tempo(s)'})
     
@@ -59,27 +55,28 @@ def gerar_grafico_tempo_execucao():
 
     # --- 3. Geração do Gráfico ---
     plt.style.use('seaborn-v0_8-whitegrid')
-    plt.figure(figsize=(14, 8))
+    plt.figure(figsize=(15, 9))
 
-    # Plota os dados
-    plt.plot(media_serial['Tamanho'], media_serial['Tempo(s)'], marker='o', linestyle='-', label='Serial')
+    # Plota os dados com marcadores e linhas maiores
+    plt.plot(media_serial['Tamanho'], media_serial['Tempo(s)'], marker='o', linestyle='-', label='Serial', markersize=8, linewidth=2.5)
     
-    plt.plot(media_openmp_static['Tamanho'], media_openmp_static['Tempo(s)'], marker='s', linestyle='--', label='OpenMP (static, 8 threads)')
-    plt.plot(media_openmp_dynamic['Tamanho'], media_openmp_dynamic['Tempo(s)'], marker='x', linestyle=':', label='OpenMP (dynamic, 8 threads)')
-    plt.plot(media_openmp_guided['Tamanho'], media_openmp_guided['Tempo(s)'], marker='d', linestyle='-.', label='OpenMP (guided, 8 threads)')
+    plt.plot(media_openmp_static['Tamanho'], media_openmp_static['Tempo(s)'], marker='s', linestyle='--', label='OpenMP (static, 8 threads)', markersize=8, linewidth=2.5)
+    plt.plot(media_openmp_dynamic['Tamanho'], media_openmp_dynamic['Tempo(s)'], marker='x', linestyle=':', label='OpenMP (dynamic, 8 threads)', markersize=8, linewidth=2.5)
+    plt.plot(media_openmp_guided['Tamanho'], media_openmp_guided['Tempo(s)'], marker='d', linestyle='-.', label='OpenMP (guided, 8 threads)', markersize=8, linewidth=2.5)
     
-    plt.plot(media_mpi['Tamanho'], media_mpi['Tempo(s)'], marker='^', linestyle='-', label='MPI (8 processos)')
+    plt.plot(media_mpi['Tamanho'], media_mpi['Tempo(s)'], marker='^', linestyle='-', label='MPI (8 processos)', markersize=8, linewidth=2.5)
 
-    # Configurações do gráfico
-    plt.title('Tempo de Execução vs. Tamanho da Entrada (8 Threads/Processos)', fontsize=16, fontweight='bold')
-    plt.xlabel('Tamanho da Entrada (N)', fontsize=12)
-    plt.ylabel('Tempo Médio de Execução (s)', fontsize=12)
+    # Configurações do gráfico com fontes maiores
+    plt.title('Tempo de Execução vs. Tamanho da Entrada (8 Threads/Processos)', fontsize=20, fontweight='bold')
+    plt.xlabel('Tamanho da Entrada (N)', fontsize=14)
+    plt.ylabel('Tempo Médio de Execução (s)', fontsize=14)
     
     plt.yscale('log')
     plt.xscale('log')
     
-    plt.legend(fontsize=11)
-    plt.xticks(media_serial['Tamanho'])
+    plt.legend(fontsize=12)
+    plt.xticks(media_serial['Tamanho'], fontsize=12)
+    plt.yticks(fontsize=12)
     plt.gca().get_xaxis().set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
     plt.grid(True, which="both", ls="--")
 
@@ -121,7 +118,6 @@ def gerar_grafico_eficiencia_vs_processos():
 
     # --- Processamento OpenMP ---
     media_openmp = df_openmp[df_openmp['Tamanho'] == TAMANHO_ENTRADA].copy()
-    
     media_openmp_static = media_openmp[media_openmp['Schedule'] == 'static']
     media_openmp_dynamic = media_openmp[media_openmp['Schedule'] == 'dynamic']
     media_openmp_guided = media_openmp[media_openmp['Schedule'] == 'guided']
@@ -137,27 +133,27 @@ def gerar_grafico_eficiencia_vs_processos():
 
     # --- 3. Geração do Gráfico ---
     plt.style.use('seaborn-v0_8-whitegrid')
-    plt.figure(figsize=(12, 7))
+    plt.figure(figsize=(13, 8))
 
-    # Plota os dados
-    plt.plot(media_openmp_static['Threads'], media_openmp_static['Eficiencia'], marker='s', linestyle='--', label='OpenMP (static)')
-    plt.plot(media_openmp_dynamic['Threads'], media_openmp_dynamic['Eficiencia'], marker='x', linestyle=':', label='OpenMP (dynamic)')
-    plt.plot(media_openmp_guided['Threads'], media_openmp_guided['Eficiencia'], marker='d', linestyle='-.', label='OpenMP (guided)')
+    # Plota os dados com marcadores e linhas maiores
+    plt.plot(media_openmp_static['Threads'], media_openmp_static['Eficiencia'], marker='s', linestyle='--', label='OpenMP (static)', markersize=8, linewidth=2.5)
+    plt.plot(media_openmp_dynamic['Threads'], media_openmp_dynamic['Eficiencia'], marker='x', linestyle=':', label='OpenMP (dynamic)', markersize=8, linewidth=2.5)
+    plt.plot(media_openmp_guided['Threads'], media_openmp_guided['Eficiencia'], marker='d', linestyle='-.', label='OpenMP (guided)', markersize=8, linewidth=2.5)
     
-    plt.plot(media_mpi['Processos'], media_mpi['Eficiencia'], marker='^', linestyle='-', label='MPI')
+    plt.plot(media_mpi['Processos'], media_mpi['Eficiencia'], marker='^', linestyle='-', label='MPI', markersize=8, linewidth=2.5)
 
-    # Configurações do gráfico
-    plt.title(f'Eficiência vs. Número de Threads/Processos (N={TAMANHO_ENTRADA:,})', fontsize=16, fontweight='bold')
-    plt.xlabel('Número de Threads/Processos', fontsize=12)
-    plt.ylabel('Eficiência Média', fontsize=12)
+    # Configurações do gráfico com fontes maiores
+    plt.title(f'Eficiência vs. Número de Threads/Processos (N={TAMANHO_ENTRADA:,})', fontsize=20, fontweight='bold')
+    plt.xlabel('Número de Threads/Processos', fontsize=14)
+    plt.ylabel('Eficiência Média', fontsize=14)
     
-    # Definir os ticks do eixo x para serem os valores exatos de threads/processos
     process_counts = sorted(media_mpi['Processos'].unique())
-    plt.xticks(process_counts)
+    plt.xticks(process_counts, fontsize=12)
+    plt.yticks(fontsize=12)
 
-    plt.legend(fontsize=11)
+    plt.legend(fontsize=12)
     plt.grid(True, which="both", ls="--")
-    plt.ylim(bottom=0) # A eficiência não deve ser negativa
+    plt.ylim(bottom=0)
 
     # --- 4. Salvando o Gráfico ---
     caminho_saida = os.path.join(caminho_graficos, f'eficiencia_vs_processos_{TAMANHO_ENTRADA}.png')
@@ -197,7 +193,6 @@ def gerar_grafico_speedup_vs_processos():
 
     # --- Processamento OpenMP ---
     media_openmp = df_openmp[df_openmp['Tamanho'] == TAMANHO_ENTRADA].copy()
-    
     media_openmp_static = media_openmp[media_openmp['Schedule'] == 'static']
     media_openmp_dynamic = media_openmp[media_openmp['Schedule'] == 'dynamic']
     media_openmp_guided = media_openmp[media_openmp['Schedule'] == 'guided']
@@ -213,27 +208,27 @@ def gerar_grafico_speedup_vs_processos():
 
     # --- 3. Geração do Gráfico ---
     plt.style.use('seaborn-v0_8-whitegrid')
-    plt.figure(figsize=(12, 7))
+    plt.figure(figsize=(13, 8))
 
-    # Plota os dados
-    plt.plot(media_openmp_static['Threads'], media_openmp_static['Speedup'], marker='s', linestyle='--', label='OpenMP (static)')
-    plt.plot(media_openmp_dynamic['Threads'], media_openmp_dynamic['Speedup'], marker='x', linestyle=':', label='OpenMP (dynamic)')
-    plt.plot(media_openmp_guided['Threads'], media_openmp_guided['Speedup'], marker='d', linestyle='-.', label='OpenMP (guided)')
+    # Plota os dados com marcadores e linhas maiores
+    plt.plot(media_openmp_static['Threads'], media_openmp_static['Speedup'], marker='s', linestyle='--', label='OpenMP (static)', markersize=8, linewidth=2.5)
+    plt.plot(media_openmp_dynamic['Threads'], media_openmp_dynamic['Speedup'], marker='x', linestyle=':', label='OpenMP (dynamic)', markersize=8, linewidth=2.5)
+    plt.plot(media_openmp_guided['Threads'], media_openmp_guided['Speedup'], marker='d', linestyle='-.', label='OpenMP (guided)', markersize=8, linewidth=2.5)
     
-    plt.plot(media_mpi['Processos'], media_mpi['Speedup'], marker='^', linestyle='-', label='MPI')
+    plt.plot(media_mpi['Processos'], media_mpi['Speedup'], marker='^', linestyle='-', label='MPI', markersize=8, linewidth=2.5)
 
-    # Configurações do gráfico
-    plt.title(f'Speedup vs. Número de Threads/Processos (N={TAMANHO_ENTRADA:,})', fontsize=16, fontweight='bold')
-    plt.xlabel('Número de Threads/Processos', fontsize=12)
-    plt.ylabel('Speedup Médio', fontsize=12)
+    # Configurações do gráfico com fontes maiores
+    plt.title(f'Speedup vs. Número de Threads/Processos (N={TAMANHO_ENTRADA:,})', fontsize=20, fontweight='bold')
+    plt.xlabel('Número de Threads/Processos', fontsize=14)
+    plt.ylabel('Speedup Médio', fontsize=14)
     
-    # Definir os ticks do eixo x para serem os valores exatos de threads/processos
     process_counts = sorted(media_mpi['Processos'].unique())
-    plt.xticks(process_counts)
+    plt.xticks(process_counts, fontsize=12)
+    plt.yticks(fontsize=12)
 
-    plt.legend(fontsize=11)
+    plt.legend(fontsize=12)
     plt.grid(True, which="both", ls="--")
-    plt.ylim(bottom=0) # Speedup não deve ser negativo
+    plt.ylim(bottom=0)
 
     # --- 4. Salvando o Gráfico ---
     caminho_saida = os.path.join(caminho_graficos, f'speedup_vs_processos_{TAMANHO_ENTRADA}.png')
