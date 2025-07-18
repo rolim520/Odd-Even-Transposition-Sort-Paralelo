@@ -1,7 +1,7 @@
 # Odd-Even Transposition Sort Paralelo com OpenMP e MPI
 
 Este projeto, desenvolvido para a disciplina de Computação de Alto Desempenho da UFRJ, explora a paralelização do algoritmo de ordenação **Odd-Even Transposition Sort**. Foram implementadas e analisadas três versões:
-1.  **Serial**: Uma implementação sequencial pura para servir como linha de base .
+1.  **Serial**: Uma implementação sequencial pura para servir como linha de base (baseline).
 2.  **OpenMP**: Uma versão paralela utilizando o paradigma de memória compartilhada.
 3.  **MPI**: Uma versão paralela utilizando o paradigma de troca de mensagens.
 
@@ -28,6 +28,17 @@ O objetivo é comparar o desempenho das versões paralelas em relação à seria
 ├── csv_utils.h           # Funções para manipulação de arquivos CSV
 └── README.md             # Este arquivo
 ```
+
+## Resultados
+
+O gráfico abaixo resume o ganho de desempenho (*speedup*) das versões paralelas para uma entrada de 100.000 elementos. Ele mostra como cada abordagem escala com o aumento do número de threads (OpenMP) ou processos (MPI).
+
+![Speedup vs. Número de Threads/Processos](graficos/speedup_vs_processos_100000.png)
+
+As principais conclusões visíveis no gráfico são:
+- A versão **OpenMP com agendamento `static`** foi a mais eficiente, alcançando um speedup de aproximadamente 7.7x com 8 threads. Isso se deve à carga de trabalho perfeitamente balanceada do algoritmo.
+- A versão **MPI** também demonstrou excelente escalabilidade, aproximando-se do desempenho do OpenMP com 8 processos.
+- O agendamento **`dynamic` no OpenMP** se mostrou inadequado para este problema, resultando em um desempenho inferior ao da versão serial devido ao alto overhead de gerenciamento das threads.
 
 ## Pré-requisitos
 
