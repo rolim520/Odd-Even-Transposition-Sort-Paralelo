@@ -127,3 +127,7 @@ python3 scripts/plot_graphs.py
 ```
 
 Após esses quatro passos, os diretórios `data/` e `graficos/` estarão populados com todos os resultados e visualizações, e o relatório completo em PDF pode ser encontrado em `tex/relatorio.pdf`.
+
+## Link para o repositório
+
+[https://github.com/rolim520/Odd-Even-Transposition-Sort-Paralelo](https://github.com/rolim520/Odd-Even-Transposition-Sort-Paralelo)
