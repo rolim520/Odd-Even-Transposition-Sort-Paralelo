@@ -173,6 +173,85 @@ def gerar_grafico_eficiencia_vs_processos():
     print(f"\nGráfico de eficiência salvo com sucesso em: '{caminho_saida}'")
 
 
+def gerar_grafico_speedup_vs_processos():
+    """
+    Gera e salva um gráfico de linha comparando o speedup
+    das implementações OpenMP (diferentes schedules) e MPI
+    para um tamanho de entrada fixo (N=100.000).
+    """
+    print("\nIniciando a geração do gráfico de speedup...")
+
+    # --- 1. Definição dos Caminhos e Constantes ---
+    caminho_base_dados = 'data'
+    caminho_graficos = 'graficos'
+    TAMANHO_ENTRADA = 100000
+
+    if not os.path.exists(caminho_graficos):
+        os.makedirs(caminho_graficos)
+
+    arquivo_openmp = os.path.join(caminho_base_dados, 'openmp.csv')
+    arquivo_mpi = os.path.join(caminho_base_dados, 'mpi.csv')
+
+    # --- 2. Carregamento e Processamento dos Dados ---
+    try:
+        df_openmp = pd.read_csv(arquivo_openmp)
+        df_mpi = pd.read_csv(arquivo_mpi)
+        print("Arquivos CSV para o gráfico de speedup carregados com sucesso.")
+    except FileNotFoundError as e:
+        print(f"Erro: Arquivo não encontrado - {e}")
+        print("Verifique se os arquivos CSV estão no diretório 'data/'.")
+        return
+
+    # --- Processamento OpenMP ---
+    df_openmp_filtrado = df_openmp[df_openmp['Tamanho'] == TAMANHO_ENTRADA].copy()
+    media_openmp = df_openmp_filtrado.groupby(['Threads', 'Schedule'])['Speedup'].mean().reset_index()
+    
+    media_openmp_static = media_openmp[media_openmp['Schedule'] == 'static']
+    media_openmp_dynamic = media_openmp[media_openmp['Schedule'] == 'dynamic']
+    media_openmp_guided = media_openmp[media_openmp['Schedule'] == 'guided']
+    
+    print(f"\nDados de Speedup OpenMP (Média, N={TAMANHO_ENTRADA:,}):")
+    print(media_openmp)
+
+    # --- Processamento MPI ---
+    df_mpi_filtrado = df_mpi[df_mpi['Tamanho'] == TAMANHO_ENTRADA].copy()
+    media_mpi = df_mpi_filtrado.groupby('Processos')['Speedup'].mean().reset_index()
+    
+    print(f"\nDados de Speedup MPI (Média, N={TAMANHO_ENTRADA:,}):")
+    print(media_mpi)
+
+    # --- 3. Geração do Gráfico ---
+    plt.style.use('seaborn-v0_8-whitegrid')
+    plt.figure(figsize=(12, 7))
+
+    # Plota os dados
+    plt.plot(media_openmp_static['Threads'], media_openmp_static['Speedup'], marker='s', linestyle='--', label='OpenMP (static)')
+    plt.plot(media_openmp_dynamic['Threads'], media_openmp_dynamic['Speedup'], marker='x', linestyle=':', label='OpenMP (dynamic)')
+    plt.plot(media_openmp_guided['Threads'], media_openmp_guided['Speedup'], marker='d', linestyle='-.', label='OpenMP (guided)')
+    
+    plt.plot(media_mpi['Processos'], media_mpi['Speedup'], marker='^', linestyle='-', label='MPI')
+
+    # Configurações do gráfico
+    plt.title(f'Speedup vs. Número de Threads/Processos (N={TAMANHO_ENTRADA:,})', fontsize=16, fontweight='bold')
+    plt.xlabel('Número de Threads/Processos', fontsize=12)
+    plt.ylabel('Speedup Médio', fontsize=12)
+    
+    # Definir os ticks do eixo x para serem os valores exatos de threads/processos
+    process_counts = sorted(media_mpi['Processos'].unique())
+    plt.xticks(process_counts)
+
+    plt.legend(fontsize=11)
+    plt.grid(True, which="both", ls="--")
+    plt.ylim(bottom=0) # Speedup não deve ser negativo
+
+    # --- 4. Salvando o Gráfico ---
+    caminho_saida = os.path.join(caminho_graficos, f'speedup_vs_processos_{TAMANHO_ENTRADA}.png')
+    plt.savefig(caminho_saida, dpi=300, bbox_inches='tight')
+    
+    print(f"\nGráfico de speedup salvo com sucesso em: '{caminho_saida}'")
+
+
 if __name__ == '__main__':
     gerar_grafico_tempo_execucao()
     gerar_grafico_eficiencia_vs_processos()
+    gerar_grafico_speedup_vs_processos()
