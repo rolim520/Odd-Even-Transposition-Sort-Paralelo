@@ -4,43 +4,50 @@ CC = gcc
 MPICC = mpicc
 
 # Flags de compilação para todos
+# -O2: Nível de otimização
+# -Wall: Habilita a maioria dos warnings
+# -D_POSIX_C_SOURCE=199309L: Necessário para clock_gettime
 CFLAGS = -O2 -Wall -D_POSIX_C_SOURCE=199309L
 
-# Flags de vinculação específicas
+# Flags de vinculação específicas para OpenMP
+# -fopenmp: Habilita o suporte a OpenMP no GCC
 LDFLAGS_OPENMP = -fopenmp
 
-# Nomes dos arquivos de saída
+# Nomes dos arquivos de saída (executáveis)
 TARGET_SERIAL = build/odd_even_serial
 TARGET_OPENMP = build/odd_even_openmp
 TARGET_MPI = build/odd_even_mpi
 
 # Regra padrão: compila todos os alvos
+# Esta é a regra executada quando se digita 'make' sem argumentos.
+# Ela depende das regras dos três executáveis.
 all: $(TARGET_SERIAL) $(TARGET_OPENMP) $(TARGET_MPI)
 
 # Regra para o código Serial
-# $@ é o nome do alvo (build/odd_even_serial)
-# $^ são as dependências (odd_even_serial.c)
+# $@ é uma variável automática do Make que representa o nome do alvo (build/odd_even_serial)
+# $^ é uma variável automática que representa todas as dependências (odd_even_serial.c utils.h csv_utils.h)
 $(TARGET_SERIAL): odd_even_serial.c utils.h csv_utils.h
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ odd_even_serial.c
+	@mkdir -p $(dir $@) # Cria o diretório 'build/' se não existir. O '@' suprime a exibição do comando.
+	$(CC) $(CFLAGS) -o $@ odd_even_serial.c # Compila o código
 
 # Regra para o código OpenMP
 $(TARGET_OPENMP): odd_even_openmp.c utils.h csv_utils.h
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(LDFLAGS_OPENMP) -o $@ odd_even_openmp.c
+	$(CC) $(CFLAGS) $(LDFLAGS_OPENMP) -o $@ odd_even_openmp.c # Compila usando as flags do OpenMP
 
-# Regra para o código MPI <-- MUDANÇA PRINCIPAL AQUI
+# Regra para o código MPI
 $(TARGET_MPI): odd_even_mpi.c utils.h csv_utils.h
 	@mkdir -p $(dir $@)
-	$(MPICC) $(CFLAGS) -o $@ odd_even_mpi.c
+	$(MPICC) $(CFLAGS) -o $@ odd_even_mpi.c # Compila usando o compilador wrapper do MPI
 
-# Regra de limpeza
+# Regra de limpeza: remove o diretório de build e seu conteúdo
 clean:
 	rm -rf build
 
 # Regra para testes básicos, conforme o documento do projeto
+# Executa cada versão do programa com um input pequeno para verificação.
 test: all
-	@mkdir -p data
+	@mkdir -p data # Garante que o diretório de dados existe
 	@echo "--- Testando Serial (1K elementos) ---"
 	@./$(TARGET_SERIAL) 1000
 	@echo

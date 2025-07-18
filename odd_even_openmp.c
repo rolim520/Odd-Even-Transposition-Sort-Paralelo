@@ -1,17 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <omp.h>
+#include <omp.h> // Biblioteca OpenMP
 
 #include <string.h>
 #include "utils.h"
 #include "csv_utils.h"
 
+// Função para trocar dois elementos de posição.
 void swap(int *a, int *b) {
     int temp = *a;
     *a = *b;
     *b = temp;
 }
 
+// Versão serial do algoritmo para cálculo de speedup.
 void odd_even_sort_serial(int arr[], int n) {
     int phase, i;
     for (phase = 0; phase < n; phase++) {
@@ -31,12 +33,21 @@ void odd_even_sort_serial(int arr[], int n) {
     }
 }
 
+// Versão paralela com OpenMP e escalonamento (schedule) ESTÁTICO.
 void odd_even_sort_openmp_static(int arr[], int n, int num_threads) {
     int phase, i;
+    // Inicia a região paralela.
+    // 'num_threads': define o número de threads.
+    // 'default(none)': força a declaração explícita do escopo de cada variável.
+    // 'shared(arr, n)': 'arr' e 'n' são compartilhados entre todas as threads.
+    // 'private(phase, i)': cada thread tem sua própria cópia de 'phase' e 'i'.
     #pragma omp parallel num_threads(num_threads) default(none) shared(arr, n) private(phase, i)
     {
         for (phase = 0; phase < n; phase++) {
             if (phase % 2 == 0) { // Fase Par
+                // Paraleliza o loop 'for'.
+                // 'schedule(static)': divide as iterações em blocos de tamanho igual
+                // e os distribui estaticamente para as threads. Ideal para cargas de trabalho balanceadas.
                 #pragma omp for schedule(static)
                 for (i = 1; i < n; i += 2) {
                     if (arr[i - 1] > arr[i]) {
@@ -55,12 +66,16 @@ void odd_even_sort_openmp_static(int arr[], int n, int num_threads) {
     }
 }
 
+// Versão paralela com OpenMP e escalonamento (schedule) DINÂMICO.
 void odd_even_sort_openmp_dynamic(int arr[], int n, int num_threads) {
     int phase, i;
     #pragma omp parallel num_threads(num_threads) default(none) shared(arr, n) private(phase, i)
     {
         for (phase = 0; phase < n; phase++) {
             if (phase % 2 == 0) { // Fase Par
+                // 'schedule(dynamic)': as iterações são distribuídas dinamicamente para as threads
+                // em blocos. Quando uma thread termina, ela pega o próximo bloco disponível.
+                // Tem mais overhead que o static.
                 #pragma omp for schedule(dynamic)
                 for (i = 1; i < n; i += 2) {
                     if (arr[i - 1] > arr[i]) {
@@ -79,12 +94,16 @@ void odd_even_sort_openmp_dynamic(int arr[], int n, int num_threads) {
     }
 }
 
+// Versão paralela com OpenMP e escalonamento (schedule) GUIADO.
 void odd_even_sort_openmp_guided(int arr[], int n, int num_threads) {
     int phase, i;
     #pragma omp parallel num_threads(num_threads) default(none) shared(arr, n) private(phase, i)
     {
         for (phase = 0; phase < n; phase++) {
             if (phase % 2 == 0) { // Fase Par
+                // 'schedule(guided)': semelhante ao dynamic, mas o tamanho dos blocos diminui
+                // ao longo do tempo. Começa com blocos grandes e termina com pequenos.
+                // É um meio-termo entre static e dynamic.
                 #pragma omp for schedule(guided)
                 for (i = 1; i < n; i += 2) {
                     if (arr[i - 1] > arr[i]) {
@@ -113,8 +132,8 @@ int main(int argc, char *argv[]) {
 
     int n = atoi(argv[1]);
     int num_threads = atoi(argv[2]);
-    int *arr_base = malloc(n * sizeof(int));
-    int *arr_temp = malloc(n * sizeof(int));
+    int *arr_base = malloc(n * sizeof(int)); // Array original não modificado
+    int *arr_temp = malloc(n * sizeof(int)); // Cópia para cada execução
 
     generate_random_array(arr_base, n, 1000);
 
@@ -122,11 +141,11 @@ int main(int argc, char *argv[]) {
     printf("Tamanho do array: %d\n", n);
     printf("Threads: %d\n\n", num_threads);
 
-    // --- Execução Serial ---
-    memcpy(arr_temp, arr_base, n * sizeof(int));
-    double start_time_serial = omp_get_wtime();
+    // --- Execução Serial (para linha de base) ---
+    memcpy(arr_temp, arr_base, n * sizeof(int)); // Copia o array original
+    double start_time_serial = omp_get_wtime(); // Inicia a contagem de tempo
     odd_even_sort_serial(arr_temp, n);
-    double end_time_serial = omp_get_wtime();
+    double end_time_serial = omp_get_wtime(); // Finaliza a contagem
     double t_serial = end_time_serial - start_time_serial;
     printf("--- Serial ---\n");
     printf("Tempo de execução: %.6f segundos\n", t_serial);
@@ -135,7 +154,7 @@ int main(int argc, char *argv[]) {
     // --- Análise de Performance OpenMP ---
     printf("--- Análise de Performance OpenMP ---\n");
 
-    // Static
+    // Execução com schedule Static
     memcpy(arr_temp, arr_base, n * sizeof(int));
     double start_time_static = omp_get_wtime();
     odd_even_sort_openmp_static(arr_temp, n, num_threads);
@@ -150,7 +169,7 @@ int main(int argc, char *argv[]) {
     printf("  Array está ordenado: %s\n\n", is_sorted(arr_temp, n) ? "Sim" : "Não");
     save_openmp_result("data/openmp.csv", n, num_threads, "static", t_parallel_static, speedup_static, efficiency_static);
 
-    // Dynamic
+    // Execução com schedule Dynamic
     memcpy(arr_temp, arr_base, n * sizeof(int));
     double start_time_dynamic = omp_get_wtime();
     odd_even_sort_openmp_dynamic(arr_temp, n, num_threads);
@@ -165,7 +184,7 @@ int main(int argc, char *argv[]) {
     printf("  Array está ordenado: %s\n\n", is_sorted(arr_temp, n) ? "Sim" : "Não");
     save_openmp_result("data/openmp.csv", n, num_threads, "dynamic", t_parallel_dynamic, speedup_dynamic, efficiency_dynamic);
 
-    // Guided
+    // Execução com schedule Guided
     memcpy(arr_temp, arr_base, n * sizeof(int));
     double start_time_guided = omp_get_wtime();
     odd_even_sort_openmp_guided(arr_temp, n, num_threads);
