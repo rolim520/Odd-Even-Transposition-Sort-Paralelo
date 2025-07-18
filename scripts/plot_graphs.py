@@ -11,8 +11,8 @@ def gerar_grafico_tempo_execucao():
     print("Iniciando a geração do gráfico de tempo de execução...")
 
     # --- 1. Definição dos Caminhos e Criação do Diretório ---
-    caminho_base_dados = 'data'
-    caminho_graficos = 'graficos'
+    caminho_base_dados = os.path.join(os.path.dirname(__file__), '..', 'data')
+    caminho_graficos = os.path.join(os.path.dirname(__file__), '..', 'graficos')
     
     if not os.path.exists(caminho_graficos):
         print(f"Criando diretório '{caminho_graficos}'...")
@@ -104,8 +104,8 @@ def gerar_grafico_eficiencia_vs_processos():
     print("\nIniciando a geração do gráfico de eficiência...")
 
     # --- 1. Definição dos Caminhos e Constantes ---
-    caminho_base_dados = 'data'
-    caminho_graficos = 'graficos'
+    caminho_base_dados = os.path.join(os.path.dirname(__file__), '..', 'data')
+    caminho_graficos = os.path.join(os.path.dirname(__file__), '..', 'graficos')
     TAMANHO_ENTRADA = 100000
 
     if not os.path.exists(caminho_graficos):
@@ -182,8 +182,8 @@ def gerar_grafico_speedup_vs_processos():
     print("\nIniciando a geração do gráfico de speedup...")
 
     # --- 1. Definição dos Caminhos e Constantes ---
-    caminho_base_dados = 'data'
-    caminho_graficos = 'graficos'
+    caminho_base_dados = os.path.join(os.path.dirname(__file__), '..', 'data')
+    caminho_graficos = os.path.join(os.path.dirname(__file__), '..', 'graficos')
     TAMANHO_ENTRADA = 100000
 
     if not os.path.exists(caminho_graficos):

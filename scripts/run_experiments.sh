@@ -2,6 +2,12 @@
 
 # Script para executar os experimentos de ordenação com diferentes parâmetros.
 
+# Obter o diretório do script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Voltar para o diretório raiz do projeto
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_DIR"
+
 # Garante que todos os executáveis estão compilados
 echo "--- Compilando todos os programas... ---"
 make all
